@@ -32,50 +32,53 @@ function(instance, context) {
     
     // FUNCTION DEFINATIONS
     
-    var itemSelectionCheck = (e) => {  // adding an element listener do understand which user item selected
+    // this function checks which user selected and trigger the addMention function, and after that remove the menu
+    var itemSelectionCheck = (e) => {  
         
         if(e.target.id.includes("opt-")){ // We'd like to run the function only if a user item selected
             addMention(e.target.id); 
             
           }
-         
-        removeGroupFocus(menu);
+        
+        var menu = document.getElementById("userMentionMenu");
+        if(menu !== null){
+            removeGroupFocus(menu);
+        }
     };
+
+    // this function checks which element is clicked by the user
+    var clickedElementIsMenu = (e) => { // adding an element listener do understand an element is clicked except menu
+        console.log("yo");
+        if(!e.target.id.includes("userMentionMenu")){ // if the element is not the menu, we removing the menu
+            var menu = document.getElementById("userMentionMenu");
+            if(menu !== null){
+                removeGroupFocus(menu);
+                document.removeEventListener('click', clickedElementIsMenu);
+            }
+        }
+    }
 
     function removeGroupFocus(el){
         el.remove();
     }
     
     function openGroupFocus(x, y, userNames) {
+
+        var menu = document.createElement("div");
+        menu.setAttribute('id', "userMentionMenu"); // add the ID 
+        menu.classList.add("dropdown-menu");
+        menu.style.position = "absolute";
+        menu.style.left = x + "px";
+        menu.style.top = y + "px";
+        menu.style.width = "200px";
+        menu.style.height = "400px";
+        menu.style.backgroundColor = "lightblue";
+        menu.style.zIndex = "99999";
+        menu.style.overflowY = "scroll";
+       
+        menu.addEventListener('click', itemSelectionCheck);
         
-        
-        
-    	 var menu = document.createElement("div");
-         menu.setAttribute('id', "userMentionMenu"); // add the ID 
-         menu.classList.add("dropdown-menu");
-         menu.style.position = "absolute";
-         menu.style.left = x + "px";
-         menu.style.top = y + "px";
-         menu.style.width = "200px";
-         menu.style.height = "400px";
-         menu.style.backgroundColor = "lightblue";
-         menu.style.zIndex = "99999";
-         menu.style.overflowY = "scroll";
-        
-         menu.addEventListener('click', itemSelectionCheck);
-        
-        document.addEventListener('click', (e) => // adding an element listener do understand an element is clicked except menu
-        {
-     
-            if(!e.target.id.includes("userMentionMenu")){ // if the element is not the menu, we removing the menu
-            	removeGroupFocus(menu);
-                
-      		}
-            
-            
-            
-          }
-        );
+        document.addEventListener('click', clickedElementIsMenu);
         
         // adding user items into the menu
         
@@ -91,12 +94,6 @@ function(instance, context) {
            
             
         }
-         
-			
-        
-        
-        
-       
                
         let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
 	 
@@ -105,7 +102,6 @@ function(instance, context) {
         richEditor.addEventListener("input", function listenKeys() { // after the menu opened we listen all key inputs
             
 	 		let selection = window.getSelection(); // learn selection's position
-          
            
             letterCount++; 
             const range = selection.getRangeAt(0);
@@ -160,7 +156,8 @@ function(instance, context) {
            }
             
            
-        });
+        }
+        );
         
         
     }
