@@ -26,9 +26,13 @@ function(instance, context) {
     var mentionedUsersName = []; // array for storing mentioned users name
     var mentionedUsersId = []; // array for storing mentioned users ID
     
+    instance.data.checkUsersName = [];
+    instance.data.checkUsersId = [];
+
     var i;
     
     instance.data.searchText = "";
+    instance.data.menu = document.getElementById("userMentionMenu");
     
     // FUNCTION DEFINATIONS
     
@@ -48,7 +52,7 @@ function(instance, context) {
 
     // this function checks which element is clicked by the user
     var clickedElementIsMenu = (e) => { // adding an element listener do understand an element is clicked except menu
-        console.log("yo");
+        
         if(!e.target.id.includes("userMentionMenu")){ // if the element is not the menu, we removing the menu
             var menu = document.getElementById("userMentionMenu");
             if(menu !== null){
@@ -58,8 +62,79 @@ function(instance, context) {
         }
     }
 
-    function removeGroupFocus(el){
-        el.remove();
+    instance.data.letterCount = 0;
+
+    var listenKeys = (e) => { // after the menu opened we listen all key inputs
+        let selection = window.getSelection(); // learn selection's position
+      
+        instance.data.letterCount++; 
+        const range = selection.getRangeAt(0);
+        
+        const start = range.startOffset - instance.data.letterCount;
+
+        const searchString = range.startContainer.textContent.substring(start, range.startOffset); // this is the whole text in the line
+        
+        /*
+        console.log(searchString);
+        console.log(range.startOffset);
+        console.log(instance.data.letterCount);
+        */
+        
+        const atIndex = searchString.indexOf("@"); // we only need the text after the '@', so learning '@'s position
+
+        const searchText = searchString.substring(atIndex + 1).toLowerCase(); // the text after '@'
+
+        console.log(searchText);
+        
+        instance.data.searchText = searchText;
+        
+        // var menu = document.getElementById("userMentionMenu");
+        var menu = instance.data.menu;
+
+        if(menu !== null){
+            var ps = menu.querySelectorAll("p"); // all p tags in the menu
+            
+            // we're hiding all the p tags which doesn't contain the search text
+            
+            for (var i = 0; i < ps.length; i++) {
+            
+                if (!ps[i].textContent.toLowerCase().includes(searchText)) { // the menu item includes the search text or not
+                
+                    ps[i].style.display = "none";
+                
+                }
+            
+                else{
+                
+                    ps[i].style.display = "block";
+                
+                }
+        
+        }
+       }
+      // if the menu is not opened yet and the search text has more than one character the menu will be visible
+       
+       if(document.getElementById("userMentionMenu") == null && instance.data.searchText.length > 1){
+            document.body.appendChild(menu);
+       }
+        
+       
+       // if the menu is visible but search line doesn'T contain '@' character, we are removing the menu
+        
+       if(!searchString.includes('@') && menu !== null){
+           
+            removeGroupFocus(menu);
+           
+       }
+       
+      
+    }
+
+    function removeGroupFocus(menu){
+        menu.remove();
+        let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
+        richEditor.removeEventListener("input", listenKeys);
+        instance.data.letterCount = 0;
     }
     
     function openGroupFocus(x, y, userNames) {
@@ -80,6 +155,7 @@ function(instance, context) {
         
         document.addEventListener('click', clickedElementIsMenu);
         
+        instance.data.menu = menu;
         // adding user items into the menu
         
         for (var i = 0; i < userNames.length; i++) {
@@ -97,67 +173,10 @@ function(instance, context) {
                
         let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
 	 
-        var letterCount = 0; // it will be increased while the user typing
+        
        
-        richEditor.addEventListener("input", function listenKeys() { // after the menu opened we listen all key inputs
-            
-	 		let selection = window.getSelection(); // learn selection's position
-           
-            letterCount++; 
-            const range = selection.getRangeAt(0);
-          
-            const start = range.startOffset - letterCount;
-         
-            const searchString = range.startContainer.textContent.substring(start, range.startOffset); // this is the whole text in the line
-             
-           
-            const atIndex = searchString.indexOf("@"); // we only need the text after the '@', so learning '@'s position
-        
-            const searchText = searchString.substring(atIndex + 1).toLowerCase(); // the text after '@'
-         
-            console.log(searchText);
-	  	
-            instance.data.searchText = searchText;
-           
-        
-            var ps = menu.querySelectorAll("p"); // all p tags in the menu
-        	
-            // we're hiding all the p tags which doesn't contain the search text
-            
-            for (var i = 0; i < ps.length; i++) {
-             
-                if (!ps[i].textContent.toLowerCase().includes(searchText)) { // the menu item includes the search text or not
-               
-                    ps[i].style.display = "none";
-             
-                }
-             
-                else{
-               
-                    ps[i].style.display = "block";
-             
-                }
-           
-            }
-            
-		   // if the menu is not opened yet and the search text has more than one character the menu will be visible
-            
-           if(document.getElementById("userMentionMenu") == null && instance.data.searchText.length > 1){
-            	document.body.appendChild(menu);
-           }
-            
-           
-           // if the menu is visible but search line doesn'T contain '@' character, we are removing the menu
-            
-           if(!searchString.includes('@') && menu !== null){
-               
-                removeGroupFocus(menu);
-               
-           }
-            
-           
-        }
-        );
+       // richEditor.addEventListener("input", listenKeys(menu));
+        richEditor.addEventListener("input", listenKeys);
         
         
     }
@@ -173,6 +192,9 @@ function(instance, context) {
         mentionedUsersName.push(theUsersName); // adding the mentioned user's name to mentioned users name list
         mentionedUsersId.push(userIds[elementId.substr(elementId.length - 1)]); // adding the mentioned user's uid to mentioned users ID list
        
+        instance.data.checkUsersName.push(theUsersName);
+        instance.data.checkUsersId.push(userIds[elementId.substr(elementId.length - 1)]);
+
     	console.log(mentionedUsersName);
         console.log(mentionedUsersId);
         
@@ -227,13 +249,15 @@ function(instance, context) {
             if(focused){
                 
                 
-                console.log("bobo");
+                
                 
             	// Rich text editörün seçili olan karakterleri gösteren range nesnesini alın
                 var range = window.getSelection().getRangeAt(0);
 
                 // Seçili karakterlerin görüntülenen sayfada kapladığı alanın özelliklerini alın
                 var rect = range.getBoundingClientRect();
+                
+                console.log(rect);
 
                 // Karakterin x ve y pozisyonlarını hesaplayın
                 var x = rect.left;
