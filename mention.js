@@ -20,8 +20,12 @@ function(instance, context) {
 	var focused; // variable for learning is the richtext editor focused or not
     var scrollY; // variable for getting current scroll position
     
+    var mentionColor = '#ff0000';
+    var boldMention = true;
+
     var userNames = []; 
     var userIds = [];
+    var userImages = [];
     
     var mentionedUsersName = []; // array for storing mentioned users name
     var mentionedUsersId = []; // array for storing mentioned users ID
@@ -39,8 +43,20 @@ function(instance, context) {
     // this function checks which user selected and trigger the addMention function, and after that remove the menu
     var itemSelectionCheck = (e) => {  
         
-        if(e.target.id.includes("opt-")){ // We'd like to run the function only if a user item selected
-            addMention(e.target.id); 
+        var selectedEl = e.target;
+
+        if(selectedEl.tagName !== 'P'){
+            if(e.target.parentElement.tagName !== 'P'){
+                selectedEl = selectedEl.parentElement.parentElement;
+            }else{
+                selectedEl = selectedEl.parentElement;
+            }
+        }
+
+        console.log(selectedEl.id);
+
+        if(selectedEl.id.includes("opt-")){ // We'd like to run the function only if a user item selected
+            addMention(selectedEl.id); 
             
           }
         
@@ -116,6 +132,22 @@ function(instance, context) {
        
        if(document.getElementById("userMentionMenu") == null && instance.data.searchText.length > 1){
             document.body.appendChild(menu);
+            // Rich text editörün seçili olan karakterleri gösteren range nesnesini alın
+            var range2 = window.getSelection().getRangeAt(0);
+
+            // Seçili karakterlerin görüntülenen sayfada kapladığı alanın özelliklerini alın
+            var rect = range2.getBoundingClientRect();
+            
+            console.log(rect);
+
+            // Karakterin x ve y pozisyonlarını hesaplayın
+            var x = rect.left;
+            var y = rect.top;
+
+            y = y + scrollY + 20;
+
+            menu.style.left = x + "px";
+            menu.style.top = y + "px";
        }
         
        
@@ -137,20 +169,25 @@ function(instance, context) {
         instance.data.letterCount = 0;
     }
     
-    function openGroupFocus(x, y, userNames) {
+    function openGroupFocus(userNames) {
 
         var menu = document.createElement("div");
         menu.setAttribute('id', "userMentionMenu"); // add the ID 
         menu.classList.add("dropdown-menu");
         menu.style.position = "absolute";
-        menu.style.left = x + "px";
-        menu.style.top = y + "px";
+        menu.style.left ="0px";
+        menu.style.top = "0px";
         menu.style.width = "200px";
-        menu.style.height = "400px";
-        menu.style.backgroundColor = "lightblue";
+        menu.style.height = "auto";
+        menu.style.maxHeight = "300px";
         menu.style.zIndex = "99999";
         menu.style.overflowY = "scroll";
-       
+        menu.style.backgroundColor = instance.data.background_color;
+        menu.style.boxShadow = "0px 4px 6px 0px rgba(0, 0, 0, 0.1)";
+        menu.style.borderRadius = "4px";
+        
+        
+
         menu.addEventListener('click', itemSelectionCheck);
         
         document.addEventListener('click', clickedElementIsMenu);
@@ -163,12 +200,57 @@ function(instance, context) {
             var uniqueElementId = "opt-"+i // creating a unique element ID, thus we can listen the object
             
             var userItem = document.createElement("p"); 
-            userItem.setAttribute('id', uniqueElementId); // add the ID 
-            userItem.innerHTML = userNames[i];
+            
+            userItem.style.padding = "6px";
+
+            userItem.style.display = "table";
+
+            userItem.style.fontFamily = instance.data.font_face.split(':::')[0]+", sans-serif";
+            userItem.style.fontWidth = instance.data.font_face.split(':::')[1];
+            userItem.style.fontSize = instance.data.font_size+"px";
+            userItem.style.color = instance.data.font_color;
+            userItem.setAttribute('id', uniqueElementId);
+
+            userItem.onmouseover = function() {
+                this.style.transition = "background-color 0.1s ease";
+                this.style.backgroundColor = instance.data.theme_color;
+            }
+            
+            userItem.onmouseout = function() {
+                this.style.transition = "background-color 0.1s ease";
+                this.style.backgroundColor = "";
+            }
+
+            //userItem.setAttribute('id', uniqueElementId); // add the ID 
+            //userItem.innerHTML = userNames[i];
+            
+            
+            // YENİ
+            var userRow = document.createElement("div");
+            userRow.style.height = "auto";
+            userRow.style.display = "table";
+            
+            if(userImages[i]){
+                var profileImg = document.createElement("img");
+                profileImg.setAttribute('src', userImages[i]);
+                profileImg.style.width = "30px";
+                profileImg.style.height = "30px";
+                profileImg.style.borderRadius = "50%";
+                profileImg.style.verticalAlign = "middle";
+                userRow.appendChild(profileImg);
+            }
+
+            var nameText = document.createElement("span");
+            nameText.innerHTML = userNames[i];
+            nameText.style.marginLeft = "10px";
+            nameText.style.verticalAlign = "middle";
+
+            
+            userRow.appendChild(nameText);
+            
+            userItem.appendChild(userRow);
+
             menu.appendChild(userItem);
-            
-           
-            
         }
                
         let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
@@ -183,11 +265,18 @@ function(instance, context) {
 	
     function addMention(elementId){ // add the selected users name into the input
         
-        var selectedElement = document.getElementById(elementId); // get the selected element
-        
+        //var selectedElement = document.getElementById(elementId); // get the selected element
+        var selectedElement = document.querySelector(`#${elementId} > div > span`);
+       
+
         var theUsersName = selectedElement.innerHTML;
         
-        var valueToBeReplaced = "<strong>"+theUsersName+"</strong> "; 
+        if(boldMention){
+        	var valueToBeReplaced = "<strong><span style='color:"+mentionColor+"'>"+theUsersName+"</span></strong> ";   
+        }else{
+            var valueToBeReplaced = "<span style='color:"+mentionColor+"'>"+theUsersName+"</span> "; 
+        }
+        
         
         mentionedUsersName.push(theUsersName); // adding the mentioned user's name to mentioned users name list
         mentionedUsersId.push(userIds[elementId.substr(elementId.length - 1)]); // adding the mentioned user's uid to mentioned users ID list
@@ -223,11 +312,17 @@ function(instance, context) {
         
 		focused = properties.focused; // is the richtext editor focused or not
 	 	
+        mentionColor = properties.mentionColor;
+        boldMention = properties.boldMention;
+
 		if(userNames.length == 0){
             
         	userNames = properties.userNames.get(0, 99999999);
         	userIds = properties.userIds.get(0, 99999999);
             
+            if(properties.userImages){
+                userImages = properties.userImages.get(0, 99999999);
+            }
                         
         }
         
@@ -248,25 +343,7 @@ function(instance, context) {
             
             if(focused){
                 
-                
-                
-                
-            	// Rich text editörün seçili olan karakterleri gösteren range nesnesini alın
-                var range = window.getSelection().getRangeAt(0);
-
-                // Seçili karakterlerin görüntülenen sayfada kapladığı alanın özelliklerini alın
-                var rect = range.getBoundingClientRect();
-                
-                console.log(rect);
-
-                // Karakterin x ve y pozisyonlarını hesaplayın
-                var x = rect.left;
-                var y = rect.top;
-
-                    y = y + scrollY + 20;
-
-                    //alert(range+" "+ rect+ " "+x+" "+y)
-                openGroupFocus(x, y, userNames)
+                openGroupFocus(userNames)
                 
               	    
 
