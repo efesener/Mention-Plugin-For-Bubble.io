@@ -1,15 +1,12 @@
 function(instance, context) {
 	
     
+  
     /*
-    	
-        
-    	CONTROL AKSİYONU YAPICAZ 
-        STYLING YAPICAZ
-        VE BİTECEK
+    
+    menü her türlü açılsın, menü açıkken itemler yüklenmeye devam edebilir
     
     */
-    
     
   
     // VARIABLE DEFINATIONS
@@ -32,7 +29,10 @@ function(instance, context) {
     
     instance.data.checkUsersName = [];
     instance.data.checkUsersId = [];
-
+	
+    var wholeListUploaded = false; // the whole list uploaded or not
+    
+    
     var i;
     
     instance.data.searchText = "";
@@ -53,7 +53,6 @@ function(instance, context) {
             }
         }
 
-        console.log(selectedEl.id);
 
         if(selectedEl.id.includes("opt-")){ // We'd like to run the function only if a user item selected
             addMention(selectedEl.id); 
@@ -79,7 +78,14 @@ function(instance, context) {
     }
 
     instance.data.letterCount = 0;
-
+	
+    function appendGroupFocus(menu){
+        document.body.appendChild(menu);
+        
+        let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
+        richEditor.addEventListener("input", listenKeys);
+    }
+    
     var listenKeys = (e) => { // after the menu opened we listen all key inputs
         let selection = window.getSelection(); // learn selection's position
       
@@ -90,17 +96,12 @@ function(instance, context) {
 
         const searchString = range.startContainer.textContent.substring(start, range.startOffset); // this is the whole text in the line
         
-        /*
-        console.log(searchString);
-        console.log(range.startOffset);
-        console.log(instance.data.letterCount);
-        */
+        
         
         const atIndex = searchString.indexOf("@"); // we only need the text after the '@', so learning '@'s position
 
         const searchText = searchString.substring(atIndex + 1).toLowerCase(); // the text after '@'
 
-        console.log(searchText);
         
         instance.data.searchText = searchText;
         
@@ -131,14 +132,15 @@ function(instance, context) {
       // if the menu is not opened yet and the search text has more than one character the menu will be visible
        
        if(document.getElementById("userMentionMenu") == null && instance.data.searchText.length > 1){
-            document.body.appendChild(menu);
+           
+           appendGroupFocus(menu);
             // Rich text editörün seçili olan karakterleri gösteren range nesnesini alın
             var range2 = window.getSelection().getRangeAt(0);
 
             // Seçili karakterlerin görüntülenen sayfada kapladığı alanın özelliklerini alın
             var rect = range2.getBoundingClientRect();
             
-            console.log(rect);
+           
 
             // Karakterin x ve y pozisyonlarını hesaplayın
             var x = rect.left;
@@ -163,14 +165,23 @@ function(instance, context) {
     }
 
     function removeGroupFocus(menu){
-        menu.remove();
-        let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
-        richEditor.removeEventListener("input", listenKeys);
-        instance.data.letterCount = 0;
+        if(wholeListUploaded){
+            menu.parentNode.removeChild(menu);
+            let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
+            richEditor.removeEventListener("input", listenKeys);
+            instance.data.letterCount = 0;
+        }else{
+            menu.remove();
+            let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
+            richEditor.removeEventListener("input", listenKeys);
+            instance.data.letterCount = 0;
+        }
     }
     
     function openGroupFocus(userNames) {
-
+		
+        
+        // creating "menu" element here
         var menu = document.createElement("div");
         menu.setAttribute('id', "userMentionMenu"); // add the ID 
         menu.classList.add("dropdown-menu");
@@ -198,17 +209,18 @@ function(instance, context) {
         for (var i = 0; i < userNames.length; i++) {
             
             var uniqueElementId = "opt-"+i // creating a unique element ID, thus we can listen the object
-            
             var userItem = document.createElement("p"); 
             
             userItem.style.padding = "6px";
 
             userItem.style.display = "table";
-
+			
+            
             userItem.style.fontFamily = instance.data.font_face.split(':::')[0]+", sans-serif";
             userItem.style.fontWidth = instance.data.font_face.split(':::')[1];
             userItem.style.fontSize = instance.data.font_size+"px";
             userItem.style.color = instance.data.font_color;
+            
             userItem.setAttribute('id', uniqueElementId);
 
             userItem.onmouseover = function() {
@@ -221,11 +233,12 @@ function(instance, context) {
                 this.style.backgroundColor = "";
             }
 
-            //userItem.setAttribute('id', uniqueElementId); // add the ID 
-            //userItem.innerHTML = userNames[i];
+            userItem.onclick = function() {
+                this.style.transition = "background-color 0.1s ease";
+                this.style.backgroundColor = "";
+            }
+
             
-            
-            // YENİ
             var userRow = document.createElement("div");
             userRow.style.height = "auto";
             userRow.style.display = "table";
@@ -277,15 +290,12 @@ function(instance, context) {
             var valueToBeReplaced = "<span style='color:"+mentionColor+"'>"+theUsersName+"</span> "; 
         }
         
-        
         mentionedUsersName.push(theUsersName); // adding the mentioned user's name to mentioned users name list
-        mentionedUsersId.push(userIds[elementId.substr(elementId.length - 1)]); // adding the mentioned user's uid to mentioned users ID list
+        mentionedUsersId.push(userIds[elementId.split('-')[1]]); // adding the mentioned user's uid to mentioned users ID list
        
         instance.data.checkUsersName.push(theUsersName);
-        instance.data.checkUsersId.push(userIds[elementId.substr(elementId.length - 1)]);
+        instance.data.checkUsersId.push(userIds[elementId.split('-')[1]]);
 
-    	console.log(mentionedUsersName);
-        console.log(mentionedUsersId);
         
         instance.publishState('mentionedUsersId', mentionedUsersId);
         instance.publishState('mentionedUsersName', mentionedUsersName);
@@ -294,17 +304,35 @@ function(instance, context) {
       
     
         
-        richTextElement.innerHTML = richTextElement.innerHTML.replace("@"+instance.data.searchText, valueToBeReplaced);;
+        richTextElement.innerHTML = richTextElement.innerHTML.replace("@"+instance.data.searchText, valueToBeReplaced);
+        
+        instance.triggerEvent('mention_added');
+        
+    
+        richTextElement.focus();
+  
+         setTimeout(function(){
+          richTextElement.blur();
+         }, 1);
     }
     
-
-    // AFTER GETTING PROPERTIES FROM THE "UPDATE" FUNCTION
+    var listStart = 0;
+	var uploadingList = true;
     
+    // AFTER GETTING PROPERTIES FROM THE "UPDATE" FUNCTION
 	instance.data.triggerMe = (properties) => {
       	
         
         
 		instance.data.ready = false;
+        
+        instance.data.font_face = properties.bubble.font_face();
+        instance.data.font_color = properties.bubble.font_color();
+		instance.data.font_size = properties.bubble.font_size();
+        instance.data.background_color = properties.backgroundColor;
+        instance.data.theme_color = properties.themeColor;
+        
+        
         
         el = properties.elementId;
         
@@ -314,7 +342,8 @@ function(instance, context) {
 	 	
         mentionColor = properties.mentionColor;
         boldMention = properties.boldMention;
-
+	
+        /* BİRİNCİ 
 		if(userNames.length == 0){
             
         	userNames = properties.userNames.get(0, 99999999);
@@ -325,8 +354,75 @@ function(instance, context) {
             }
                         
         }
+		
+        console.log("usernames length = ", userNames.length);
+		*/
         
+        /* İKİNCİ
+        if(uploadingList){
+            userNames = userNames.concat(properties.userNames.get(listStart, listStart+1000));
+            console.log(userNames);
+            
+            userIds.push.apply(properties.userIds.get(listStart, listStart+1000));
 
+            if(properties.userImages){
+                userImages.push.apply(properties.userImages.get(listStart, listStart+1000));
+            }
+            
+            console.log("usernames length = ", userNames.length);
+            console.log("properties name = ", properties.userNames.get(listStart+1000,10).length);
+			
+            listStart += 1000;
+            
+            if(properties.userNames.get(userNames.length,10).length == 0){
+            	uploadingList = false;
+                console.log("end");
+            }
+        }
+        */
+        
+        
+        /* ÜÇÜNCÜ
+        while(uploadingList){
+            
+            userNames = userNames.concat(properties.userNames.get(listStart++,1));
+            console.log(userNames);               
+            
+        }
+        */
+        
+        var addUserImages = properties.userImages;
+        
+        while(uploadingList){
+            
+            var allUserNames = properties.userNames.get(listStart,1000);
+            var allUserIds = properties.userIds.get(listStart,1000);
+            
+            if(allUserNames[0] == undefined){
+                
+            	uploadingList = false;   
+                wholeListUploaded = true;
+                
+            }else{
+                
+                userNames = userNames.concat(allUserNames);
+                userIds = userIds.concat(allUserIds);
+                
+                if(addUserImages){
+                    
+                    var allUserImages = properties.userImages.get(listStart,1000);
+                	userImages = userImages.concat(allUserImages);
+                    
+           	    }
+                
+           	    listStart += 1000;
+                
+            }
+            
+            
+        }
+        
+        
     }
     
     
@@ -343,8 +439,11 @@ function(instance, context) {
             
             if(focused){
                 
-                openGroupFocus(userNames)
-                
+                if(wholeListUploaded && instance.data.menu !== null){
+                    appendGroupFocus(instance.data.menu);   
+                }else{
+             	   openGroupFocus(userNames)
+                }
               	    
 
             }
