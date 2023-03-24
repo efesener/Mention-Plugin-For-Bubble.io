@@ -4,7 +4,7 @@ function(instance, context) {
   
     /*
     
-    menü her türlü açılsın, menü açıkken itemler yüklenmeye devam edebilir
+    empty state tuşa basınca kapanmasın
     
     */
     
@@ -29,6 +29,8 @@ function(instance, context) {
     
     instance.data.checkUsersName = [];
     instance.data.checkUsersId = [];
+
+    var emptyStateText = "User data not found!"
 	
     var wholeListUploaded = false; // the whole list uploaded or not
     
@@ -54,7 +56,7 @@ function(instance, context) {
         }
 
 
-        if(selectedEl.id.includes("opt-")){ // We'd like to run the function only if a user item selected
+        if(selectedEl.id.includes("opt-")){ //yWe'd like to run the function only if a user item selected
             addMention(selectedEl.id); 
             
           }
@@ -79,6 +81,8 @@ function(instance, context) {
 
     instance.data.letterCount = 0;
 	
+    // this function appears the menu group
+
     function appendGroupFocus(menu){
         document.body.appendChild(menu);
         
@@ -108,7 +112,7 @@ function(instance, context) {
         // var menu = document.getElementById("userMentionMenu");
         var menu = instance.data.menu;
 
-        if(menu !== null){
+        if(menu !== null){ // if the menu is already open
             var ps = menu.querySelectorAll("p"); // all p tags in the menu
             
             // we're hiding all the p tags which doesn't contain the search text
@@ -117,16 +121,25 @@ function(instance, context) {
             
                 if (!ps[i].textContent.toLowerCase().includes(searchText)) { // the menu item includes the search text or not
                 
+                    
+                    
                     ps[i].style.display = "none";
-                
+                    
                 }
             
                 else{
                 
                     ps[i].style.display = "block";
-                
-                }
-        
+
+                    
+                    
+                }   
+        }
+        if(menu.innerHTML.includes('display: block')){ // if there is at least one item that fits the search
+            instance.data.emptyState.style.display = "none";
+        }else{ // if there is no item that fits the search
+            instance.data.emptyState.style.display = "block";
+            menu.appendChild(instance.data.emptyState);
         }
        }
       // if the menu is not opened yet and the search text has more than one character the menu will be visible
@@ -197,7 +210,19 @@ function(instance, context) {
         menu.style.boxShadow = "0px 4px 6px 0px rgba(0, 0, 0, 0.1)";
         menu.style.borderRadius = "4px";
         
-        
+        // creating "empty state" element here
+        var emptyState = document.createElement("p");
+        emptyState.setAttribute('id', 'mentionEmptyState');
+        emptyState.innerHTML = emptyStateText;
+        emptyState.style.fontFamily = instance.data.font_face.split(':::')[0]+", sans-serif";
+        emptyState.style.fontWidth = instance.data.font_face.split(':::')[1];
+        emptyState.style.fontSize = instance.data.font_size+"px";
+        emptyState.style.color = instance.data.font_color;
+        emptyState.style.marginTop = "10px";
+        emptyState.style.marginBottom = "10px";
+        emptyState.style.marginLeft = "10px";
+
+        instance.data.emptyState = emptyState;
 
         menu.addEventListener('click', itemSelectionCheck);
         
@@ -332,7 +357,7 @@ function(instance, context) {
         instance.data.background_color = properties.backgroundColor;
         instance.data.theme_color = properties.themeColor;
         
-        
+        emptyStateText = properties.emptyStateText;
         
         el = properties.elementId;
         
