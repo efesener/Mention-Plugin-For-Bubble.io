@@ -36,6 +36,7 @@ function(instance, context) {
 
     var wholeListUploaded = false; // the whole list uploaded or not
 
+    let currentIndex = 0; // for keyborad interactions
 
     var i;
 
@@ -82,15 +83,72 @@ function(instance, context) {
     }
 
 
+
+
+
+    const keyboardInteractions = (event) => {
+
+        const menuOptions = instance.data.menu.querySelectorAll('.mention-visible');
+
+        if (menuOptions.length > 0) {
+
+
+            menuOptions[currentIndex].style.backgroundColor = "";
+
+
+            if (event.key === 'ArrowDown') {
+                currentIndex = (currentIndex + 1) % menuOptions.length;
+            } else if (event.key === 'ArrowUp') {
+                currentIndex = (currentIndex - 1 + menuOptions.length) % menuOptions.length;
+            } else if (event.key === 'Enter') {
+
+                addMention(menuOptions[currentIndex].id);
+                event.preventDefault();
+                if (instance.data.menu !== null) {
+                    removeGroupFocus(instance.data.menu);
+                    var richTextElement = document.querySelector(`#${el} > .ql-container > div.ql-editor`);
+
+                    setTimeout(function () {
+                        event.preventDefault();
+                        richTextElement.focus();
+                        const treeWalker = document.createTreeWalker(richTextElement, NodeFilter.SHOW_TEXT);
+                        let lastTextNode = null;
+
+                        while (treeWalker.nextNode()) {
+                            lastTextNode = treeWalker.currentNode;
+                        }
+
+                        if (lastTextNode) {
+                            const range = document.createRange();
+                            range.setStart(lastTextNode, lastTextNode.length);
+                            range.setEnd(lastTextNode, lastTextNode.length);
+
+                            const selection = window.getSelection();
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                        }
+                    }, 200);
+
+                }
+            } else {
+                currentIndex = 0;
+                menuOptions[currentIndex].style.backgroundColor = instance.data.theme_color;
+                return;
+            }
+
+            menuOptions[currentIndex].focus();
+
+            menuOptions[currentIndex].style.backgroundColor = instance.data.theme_color;
+        }
+    };
+
     function generateMenuItems() {
         menu = instance.data.menu;
-
         instance.data.emptyState.style.display = "none"; // make the empty state invisible
 
         const filteredUsers = userNames.filter(item => item.toLowerCase().startsWith(instance.data.searchText));
 
         for (var i = 0; i < filteredUsers.length; i++) {
-
 
             var uniqueElementId = "opt-" + i // creating a unique element ID, thus we can listen the object
             var userItem = document.createElement("p");
@@ -101,12 +159,24 @@ function(instance, context) {
 
 
             userItem.style.fontFamily = instance.data.font_face.split(':::')[0] + ", sans-serif";
-            userItem.style.fontWidth = instance.data.font_face.split(':::')[1];
+            userItem.style.fontWeight = instance.data.font_face.split(':::')[1];
             userItem.style.fontSize = instance.data.font_size + "px";
             userItem.style.color = instance.data.font_color;
 
+            if (!i) {
+                userItem.style.backgroundColor = instance.data.theme_color;
+            }
+
+            userItem.style.width = '100%';
+
             userItem.setAttribute('id', uniqueElementId);
             userItem.setAttribute('data-username', filteredUsers[i].toLowerCase().replaceAll(' ', ''));
+
+            userItem.setAttribute('tabindex', 0); // to enable keyboard interactions
+
+            userItem.classList.add("mention-visible");
+
+
 
             userItem.onmouseover = function () {
                 this.style.transition = "background-color 0.1s ease";
@@ -175,6 +245,8 @@ function(instance, context) {
     }
 
     var listenKeys = (e) => { // after the menu opened we listen all key inputs
+        console.log("the key is: ", e);
+
         let selection = window.getSelection(); // learn selection's position
 
         instance.data.letterCount++;
@@ -190,6 +262,7 @@ function(instance, context) {
 
         const searchText = searchString.substring(atIndex + 1).toLowerCase(); // the text after '@'
 
+        instance.data.userInput = searchString.substring(atIndex + 1);
 
         instance.data.searchText = searchText;
 
@@ -208,24 +281,28 @@ function(instance, context) {
 
             for (var i = 0; i < ps.length; i++) {
 
-                console.log("visible olacaklar, ", i);
                 ps[i].style.display = "block";
+                ps[i].classList.add('mention-visible');
 
             }
+
             for (var i = 0; i < psNot.length; i++) {
 
-                console.log("invisible olacaklar, ", i);
                 psNot[i].style.display = "none";
-                console.log("hiç görünür kaldı mı? ", ps.length);
+                psNot[i].classList.remove('mention-visible');
 
             }
-            console.log(ps.length);
 
             if (menu.innerHTML.includes('display: block')) { // if there is at least one item that fits the search
+
                 instance.data.emptyState.style.display = "none";
+
             }
+
             else if (instance.data.searchText.length > 1) { // if there is no item that fits the search
+
                 showEmptyState();
+
             }
 
         }
@@ -279,7 +356,6 @@ function(instance, context) {
         // if the menu is visible but search line doesn'T contain '@' character, we are removing the menu
 
         if (!searchString.includes('@') && menu !== null) {
-            console.log(searchString);
             removeGroupFocus(menu);
 
         }
@@ -293,15 +369,22 @@ function(instance, context) {
             let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
             richEditor.removeEventListener("input", listenKeys);
             instance.data.letterCount = 0;
+            richEditor.focus();
         } else {
             menu.remove();
             let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
             richEditor.removeEventListener("input", listenKeys);
             instance.data.letterCount = 0;
+            richEditor.focus();
         }
+
+
+        document.removeEventListener('keydown', keyboardInteractions);
+
+        currentIndex = 0;
     }
 
-    function openGroupFocus(userNames) {
+    function openGroupFocus() {
 
 
         // creating "menu" element here
@@ -316,6 +399,7 @@ function(instance, context) {
         menu.style.maxHeight = "300px";
         menu.style.zIndex = "99999";
         menu.style.overflowY = "scroll";
+        menu.style.overflowX = "hidden";
         menu.style.backgroundColor = instance.data.background_color;
         menu.style.boxShadow = "0px 4px 6px 0px rgba(0, 0, 0, 0.1)";
         menu.style.borderRadius = "4px";
@@ -325,7 +409,7 @@ function(instance, context) {
         emptyState.setAttribute('id', 'mentionEmptyState');
         emptyState.innerHTML = emptyStateText;
         emptyState.style.fontFamily = instance.data.font_face.split(':::')[0] + ", sans-serif";
-        emptyState.style.fontWidth = instance.data.font_face.split(':::')[1];
+        emptyState.style.fontWeight = instance.data.font_face.split(':::')[1];
         emptyState.style.fontSize = instance.data.font_size + "px";
         emptyState.style.color = instance.data.font_color;
         emptyState.style.marginTop = "10px";
@@ -334,12 +418,16 @@ function(instance, context) {
         emptyState.style.display = "none";
 
         instance.data.emptyState = emptyState;
+        instance.data.menu = menu;
 
         menu.addEventListener('click', itemSelectionCheck);
 
         document.addEventListener('click', clickedElementIsMenu);
 
-        instance.data.menu = menu;
+        console.log("robin");
+        document.addEventListener('keydown', keyboardInteractions);
+
+
         // adding user items into the menu
 
 
@@ -372,7 +460,7 @@ function(instance, context) {
         mentionedUsersId.push(userIds[userNames.indexOf(theUsersName)]); // adding the mentioned user's uid to mentioned users ID list
 
         instance.data.checkUsersName.push(theUsersName);
-        instance.data.checkUsersId.push(userIds[elementId.split('-')[1]]);
+        instance.data.checkUsersId.push(userIds[userNames.indexOf(theUsersName)]);
 
 
         instance.publishState('mentionedUsersId', mentionedUsersId);
@@ -381,8 +469,9 @@ function(instance, context) {
         var richTextElement = document.querySelector(`#${el} > .ql-container > div.ql-editor`);
 
 
-
-        richTextElement.innerHTML = richTextElement.innerHTML.replace("@" + instance.data.searchText, valueToBeReplaced);
+        console.log(instance.data.userInput);
+        console.log(instance.data.searchText);
+        richTextElement.innerHTML = richTextElement.innerHTML.replace("@" + instance.data.userInput, valueToBeReplaced);
 
         instance.triggerEvent('mention_added');
 
@@ -474,7 +563,7 @@ function(instance, context) {
                 if (wholeListUploaded && instance.data.menu !== null) {
                     appendGroupFocus(instance.data.menu);
                 } else {
-                    openGroupFocus(userNames);
+                    openGroupFocus();
                 }
 
 
