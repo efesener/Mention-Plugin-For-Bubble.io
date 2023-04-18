@@ -4,8 +4,9 @@ function(instance, context) {
 
     /*
     
-    ekrandan taşma riskini indirmek için acılan menünün x pozisoynu + menünün widthi, tarayıcı gneişliğine denk geliyor mu
-    diye kontrol edicez. Geliyorsa margin-left vericez.-
+    İlk harf yazıldığında ilk harfe göre p elemnetleri oluşturulacak
+    Sonrasında data-classname attribute unun searchText i içermesine göre p elementlerin visibilitesi güncellenecek
+    Menü kapatılırsa bütün p elementleri remove edilecek.
     
     */
 
@@ -97,19 +98,15 @@ function(instance, context) {
 
             if (event.key === 'ArrowDown') {
                 currentIndex = (currentIndex + 1) % menuOptions.length;
-                menuOptions[currentIndex].focus();
-                menuOptions[currentIndex].style.backgroundColor = instance.data.theme_color;
             } else if (event.key === 'ArrowUp') {
                 currentIndex = (currentIndex - 1 + menuOptions.length) % menuOptions.length;
-                menuOptions[currentIndex].focus();
-                menuOptions[currentIndex].style.backgroundColor = instance.data.theme_color;
             } else if (event.key === 'Enter') {
 
                 addMention(menuOptions[currentIndex].id);
                 event.preventDefault();
                 if (instance.data.menu !== null) {
                     removeGroupFocus(instance.data.menu);
-                    var richTextElement = document.querySelector(`#${el} > .ql-container > div.ql-editor`);
+                    var richTextElement = document.querySelector(`#${el}`);
 
                     setTimeout(function () {
                         event.preventDefault();
@@ -135,11 +132,13 @@ function(instance, context) {
                 }
             } else {
                 currentIndex = 0;
+                menuOptions[currentIndex].style.backgroundColor = instance.data.theme_color;
                 return;
             }
 
+            menuOptions[currentIndex].focus();
 
-
+            menuOptions[currentIndex].style.backgroundColor = instance.data.theme_color;
         }
     };
 
@@ -171,10 +170,12 @@ function(instance, context) {
             userItem.style.width = '100%';
 
             userItem.setAttribute('id', uniqueElementId);
-            userItem.setAttribute('data-username', filteredUsers[i].toLowerCase());
+            userItem.setAttribute('data-username', filteredUsers[i].toLowerCase().replaceAll(' ', ''));
+
             userItem.setAttribute('tabindex', 0); // to enable keyboard interactions
 
             userItem.classList.add("mention-visible");
+
 
 
             userItem.onmouseover = function () {
@@ -191,6 +192,7 @@ function(instance, context) {
                 this.style.transition = "background-color 0.1s ease";
                 this.style.backgroundColor = "";
             }
+
 
             var userRow = document.createElement("div");
             userRow.style.height = "auto";
@@ -238,40 +240,49 @@ function(instance, context) {
 
     function appendGroupFocus(menu) {
 
-        let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
+        let richEditor = document.querySelector(`#${el}`); // related rich text editor
         richEditor.addEventListener("input", listenKeys);
     }
 
     var listenKeys = (e) => { // after the menu opened we listen all key inputs
+        console.log("the key is: ", e);
 
+        instance.data.letterCount++;
 
         let selection = window.getSelection(); // learn selection's position
 
-        instance.data.letterCount++;
+        
+
+        const value = richEditor.value;
+        const atIndex = searchString.indexOf("@"); // we only need the text after the '@', so learning '@'s position
+        const searchText = value.substring(atIndex + 1, instance.data.letterCount).toLowerCase();
+        /*
         const range = selection.getRangeAt(0);
 
         const start = range.startOffset - instance.data.letterCount;
 
         const searchString = range.startContainer.textContent.substring(start, range.startOffset); // this is the whole text in the line
 
-
-
-        const atIndex = searchString.indexOf("@"); // we only need the text after the '@', so learning '@'s position
-
         const searchText = searchString.substring(atIndex + 1).toLowerCase(); // the text after '@'
+        */ 
+        console.log(searchText);
 
-        instance.data.userInput = searchString.substring(atIndex + 1);
+        instance.data.userInput = value.substring(atIndex + 1, instance.data.letterCount);
 
         instance.data.searchText = searchText;
 
+        console.log("uuuuuuu");
+        console.log(searchText);
         // var menu = document.getElementById("userMentionMenu");
         var menu = instance.data.menu;
-
         // CHECKPOINT 1
-        if (document.getElementById("userMentionMenu") !== null) { // if the menu is already open 
-            var ps = menu.querySelectorAll('p[data-username*="' + searchText + '"]');
-            var psNot = menu.querySelectorAll('p:not([data-username*="' + searchText + '"])');
+        if (menu !== null) { // if the menu is already open
+            var ps = menu.querySelectorAll('p[data-username*="' + searchText.replaceAll(' ', '') + '"]');
+            var psNot = menu.querySelectorAll('p:not([data-username*="' + searchText.replaceAll(' ', '') + '"])');
 
+
+
+            // we're hiding all the p tags which doesn't contain the search text
 
 
 
@@ -279,12 +290,6 @@ function(instance, context) {
 
                 ps[i].style.display = "block";
                 ps[i].classList.add('mention-visible');
-
-                if (!i) {
-                    ps[i].style.backgroundColor = instance.data.theme_color;
-                } else {
-                    ps[i].style.backgroundColor = "none";
-                }
 
             }
 
@@ -308,6 +313,7 @@ function(instance, context) {
             }
 
         }
+
 
 
 
@@ -346,7 +352,6 @@ function(instance, context) {
 
         // if the searchText's number of character lower than limit, then all the p tags will be removed
         else if (childElements[1] !== undefined && instance.data.searchText.length <= 1) {
-
             childElements.forEach((child) => {
                 if (child.id !== 'mentionEmptyState') {
                     //child.parentNode.removeChild(child);
@@ -357,24 +362,24 @@ function(instance, context) {
 
         // if the menu is visible but search line doesn'T contain '@' character, we are removing the menu
 
-       
-
-        if (!range.startContainer.textContent.substring(start-1, range.startOffset).includes('@') && menu !== null) {
+        if (!searchString.includes('@') && menu !== null) {
             removeGroupFocus(menu);
 
         }
+
+
     }
 
     function removeGroupFocus(menu) {
         if (wholeListUploaded) {
             menu.parentNode.removeChild(menu);
-            let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
+            let richEditor = document.querySelector(`#${el}`); // related rich text editor
             richEditor.removeEventListener("input", listenKeys);
             instance.data.letterCount = 0;
             richEditor.focus();
         } else {
             menu.remove();
-            let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
+            let richEditor = document.querySelector(`#${el}`); // related rich text editor
             richEditor.removeEventListener("input", listenKeys);
             instance.data.letterCount = 0;
             richEditor.focus();
@@ -387,6 +392,7 @@ function(instance, context) {
     }
 
     function openGroupFocus() {
+
 
         // creating "menu" element here
         var menu = document.createElement("div");
@@ -421,11 +427,11 @@ function(instance, context) {
         instance.data.emptyState = emptyState;
         instance.data.menu = menu;
 
-
         menu.addEventListener('click', itemSelectionCheck);
 
         document.addEventListener('click', clickedElementIsMenu);
 
+        console.log("robin");
         document.addEventListener('keydown', keyboardInteractions);
 
 
@@ -433,12 +439,13 @@ function(instance, context) {
 
 
 
-        let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
+        let richEditor = document.querySelector(`#${el}`); // related rich text editor
 
 
 
         // richEditor.addEventListener("input", listenKeys(menu));
         richEditor.addEventListener("input", listenKeys);
+
 
     }
 
@@ -466,8 +473,11 @@ function(instance, context) {
         instance.publishState('mentionedUsersId', mentionedUsersId);
         instance.publishState('mentionedUsersName', mentionedUsersName);
 
-        var richTextElement = document.querySelector(`#${el} > .ql-container > div.ql-editor`);
+        var richTextElement = document.querySelector(`#${el}`);
 
+
+        console.log(instance.data.userInput);
+        console.log(instance.data.searchText);
         richTextElement.innerHTML = richTextElement.innerHTML.replace("@" + instance.data.userInput, valueToBeReplaced);
 
         instance.triggerEvent('mention_added');
@@ -546,23 +556,9 @@ function(instance, context) {
     // LISTENER DEFINATIONS
 
 
-    document.addEventListener('input', function (event) {
 
-        if (event.data === '@') {
-            if (focused) {
-                if (wholeListUploaded && instance.data.menu !== null) {
-                    appendGroupFocus(instance.data.menu);
-                } else {
-                    openGroupFocus();
-                }
-            }
 
-        }
-    });
-
-    
-
-    document.addEventListener('keydown', function (event) { 
+    document.addEventListener('keydown', function (event) {
 
         if (event.key === '@') {
 
@@ -585,4 +581,9 @@ function(instance, context) {
     });
 
 
+
 }
+
+
+
+
