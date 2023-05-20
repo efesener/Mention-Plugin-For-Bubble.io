@@ -7,12 +7,11 @@ function(instance, context) {
 
 
 
-    var el;
-    var focused; // variable for learning is the richtext editor focused or not
-    var scrollY; // variable for getting current scroll position
 
-    var mentionColor = '#ff0000';
-    var boldMention = true;
+
+
+    var el;
+    var scrollY; // variable for getting current scroll position
 
     var userNames = [];
     var userIds = [];
@@ -23,6 +22,8 @@ function(instance, context) {
 
     var menuWidth = 200;
     var paddingFromScreen = 20;
+
+    let afterChar = 1;
 
     instance.data.checkUsersName = [];
     instance.data.checkUsersId = [];
@@ -35,15 +36,17 @@ function(instance, context) {
 
     var i;
 
-    let afterChar = 1; // the menu will be visible after this char count
-
     instance.data.searchText = "";
     instance.data.menu = document.getElementById("userMentionMenu");
+
+    instance.data.inputType = "Input";
+
 
     // FUNCTION DEFINATIONS
 
     // this function checks which user selected and trigger the addMention function, and after that remove the menu
     var itemSelectionCheck = (e) => {
+
         var selectedEl = e.target;
 
         if (selectedEl.tagName !== 'P') {
@@ -83,6 +86,7 @@ function(instance, context) {
 
 
     const keyboardInteractions = (event) => {
+
         const menuOptions = instance.data.menu.querySelectorAll('.mention-visible');
 
         if (menuOptions.length > 0) {
@@ -95,27 +99,17 @@ function(instance, context) {
                 currentIndex = (currentIndex + 1) % menuOptions.length;
                 menuOptions[currentIndex].focus();
                 menuOptions[currentIndex].style.backgroundColor = instance.data.theme_color;
-
-                // block page scrolling
-                event.preventDefault();
-                event.stopPropagation();
-
             } else if (event.key === 'ArrowUp') {
                 currentIndex = (currentIndex - 1 + menuOptions.length) % menuOptions.length;
                 menuOptions[currentIndex].focus();
                 menuOptions[currentIndex].style.backgroundColor = instance.data.theme_color;
-
-                // block page scrolling
-                event.preventDefault();
-                event.stopPropagation();
-
             } else if (event.key === 'Enter') {
 
                 addMention(menuOptions[currentIndex].id);
                 event.preventDefault();
                 if (instance.data.menu !== null) {
                     removeGroupFocus(instance.data.menu);
-                    var richTextElement = document.querySelector(`#${el} > .ql-container > div.ql-editor`);
+                    var richTextElement = document.querySelector(`#${el}`);
 
                     setTimeout(function () {
                         event.preventDefault();
@@ -144,6 +138,8 @@ function(instance, context) {
                 return;
             }
 
+
+
         }
     };
 
@@ -153,8 +149,6 @@ function(instance, context) {
 
         //const filteredUsers = userNames.filter(item => item.toLowerCase().startsWith(instance.data.searchText));
         const filteredUsers = userNames.filter(item => item && item.toLowerCase().startsWith(instance.data.searchText));
-
-        console.log(filteredUsers);
 
         for (var i = 0; i < filteredUsers.length; i++) {
 
@@ -203,17 +197,15 @@ function(instance, context) {
             userRow.style.height = "auto";
             userRow.style.display = "table";
 
-            try {
-                if (userImages[i]) {
-                    var profileImg = document.createElement("img");
-                    profileImg.setAttribute('src', userImages[userNames.indexOf(filteredUsers[i])]);
-                    profileImg.style.width = "30px";
-                    profileImg.style.height = "30px";
-                    profileImg.style.borderRadius = "50%";
-                    profileImg.style.verticalAlign = "middle";
-                    userRow.appendChild(profileImg);
-                }
-            } catch { }
+            if (userImages[i]) {
+                var profileImg = document.createElement("img");
+                profileImg.setAttribute('src', userImages[userNames.indexOf(filteredUsers[i])]);
+                profileImg.style.width = "30px";
+                profileImg.style.height = "30px";
+                profileImg.style.borderRadius = "50%";
+                profileImg.style.verticalAlign = "middle";
+                userRow.appendChild(profileImg);
+            }
 
             var nameText = document.createElement("span");
             nameText.innerHTML = filteredUsers[i];
@@ -242,28 +234,41 @@ function(instance, context) {
     }
 
     instance.data.letterCount = 0;
+    var searchText = "";
 
+    // this function appears the menu group
+
+    function appendGroupFocus(menu) {
+
+        let richEditor = document.querySelector(`#${el}`); // related rich text editor
+        richEditor.addEventListener("input", listenKeys);
+    }
 
     var listenKeys = (e) => { // after the menu opened we listen all key inputs
 
-        let selection = window.getSelection(); // learn selection's position
+        // indisi al 
+
+
+
+        const inputValue = instance.data.inputElement.value;
+
+        const atIndex = instance.data.caretIndex; // index of current '@'
+
+
+
+
+        if (e.data !== '@' && instance.data.letterCount == 0) {
+            instance.data.letterCount = 1
+        }
+
+        if (atIndex !== -1) {
+            searchText = inputValue.substring(atIndex + 1, atIndex + 1 + instance.data.letterCount).toLowerCase();
+            instance.data.userInput = inputValue.substring(atIndex + 1, atIndex + 1 + instance.data.letterCount);
+        }
+
+
 
         instance.data.letterCount++;
-        const range = selection.getRangeAt(0);
-
-        const start = range.startOffset - instance.data.letterCount;
-
-        const searchString = range.startContainer.textContent.substring(start, range.startOffset); // this is the whole text in the line
-
-
-
-
-        const atIndex = searchString.indexOf("@"); // we only need the text after the '@', so learning '@'s position
-
-        const searchText = searchString.substring(atIndex + 1).toLowerCase(); // the text after '@'
-
-        instance.data.userInput = searchString.substring(atIndex + 1);
-
         instance.data.searchText = searchText;
 
 
@@ -313,6 +318,17 @@ function(instance, context) {
 
         }
 
+        // learn X Y positions of search text
+
+        function getLineWidthsAndHeight(text, ctx, lineHeight) {
+            const lines = text.split("\n");
+            const lineWidths = lines.map((line) => ctx.measureText(line).width);
+
+            return {
+                lineWidths,
+                lineHeight
+            };
+        }
 
 
         const childElements = menu.querySelectorAll("*");
@@ -320,19 +336,98 @@ function(instance, context) {
         // if the menu is not opened yet and the search text has more than one character the menu will be visible
 
         if (document.getElementById("userMentionMenu") == null && instance.data.searchText.length > afterChar) {
-
             document.body.appendChild(menu);
-            // Rich text editörün seçili olan karakterleri gösteren range nesnesini alın
-            var range2 = window.getSelection().getRangeAt(0);
-
-            // Seçili karakterlerin görüntülenen sayfada kapladığı alanın özelliklerini alın
-            var rect = range2.getBoundingClientRect();
 
 
 
-            // Karakterin x ve y pozisyonlarını hesaplayın
-            var x = rect.left;
-            var y = rect.top;
+            const inputValue = instance.data.inputElement.value;
+            const searchStr = "@" + instance.data.userInput
+            const startIndex = inputValue.indexOf(searchStr);
+            const endIndex = startIndex + searchStr.length;
+
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            const computedStyle = window.getComputedStyle(instance.data.inputElement);
+            ctx.font = computedStyle.getPropertyValue("font");
+            const lineHeight = parseFloat(computedStyle.getPropertyValue("line-height"));
+            const { lineWidths: lineWidthsStart } = getLineWidthsAndHeight(inputValue.slice(0, startIndex), ctx, lineHeight);
+            const { lineWidths: lineWidthsEnd } = getLineWidthsAndHeight(inputValue.slice(0, endIndex), ctx, lineHeight);
+
+
+
+            const lineIndexStart = inputValue.slice(0, startIndex).split("\n").length - 1;
+            const lineIndexEnd = inputValue.slice(0, endIndex).split("\n").length - 1;
+
+            const inputBoundingClientRect = instance.data.inputElement.getBoundingClientRect();
+
+            // get X position of input
+            const xPosition = inputBoundingClientRect.left;
+
+
+            const inputPaddingTop = parseInt(computedStyle.paddingTop, 10);
+            const inputPaddingBot = parseInt(computedStyle.paddingBottom, 10);
+
+
+            let startX = inputBoundingClientRect.left + lineWidthsStart[lineIndexStart];
+
+            let endX = inputBoundingClientRect.left + lineWidthsEnd[lineIndexEnd];
+
+
+
+            startX -= xPosition;
+            endX -= xPosition;
+
+            var x = startX;
+
+
+            const cursorPosition = instance.data.inputElement.selectionStart;
+            const textBeforeCaret = instance.data.inputElement.value.slice(0, cursorPosition);
+            const linesBeforeCaret = textBeforeCaret.split('\n');
+
+            // Padding ve margin değerlerini hesaba kat
+            const paddingLeft = parseFloat(computedStyle.getPropertyValue('padding-left'));
+            const paddingRight = parseFloat(computedStyle.getPropertyValue('padding-right'));
+            const inputHeight = parseFloat(computedStyle.getPropertyValue('height'));
+
+            const effectiveWidth = paddingLeft + paddingRight;
+
+            let wrappedLines = 0;
+            for (const line of linesBeforeCaret) {
+                const lineWidth = ctx.measureText(line).width;
+                const textareaWidth = instance.data.inputElement.clientWidth - effectiveWidth; // padding/margin değerlerini hesaba kat
+                wrappedLines += Math.floor(lineWidth / textareaWidth);
+            }
+
+
+            const lineCounter = linesBeforeCaret.length + wrappedLines;
+
+            let startY = inputBoundingClientRect.top + lineHeight * lineCounter;
+            let endY = inputBoundingClientRect.top + lineHeight * lineCounter;
+
+            var y = startY;
+
+
+            while (endX >= instance.data.inputWidth && instance.data.inputType == "Multiline") {
+
+
+                endX %= instance.data.inputWidth;
+
+                x = endX;
+
+
+
+                y = startY;
+            }
+
+            if (endX >= instance.data.inputWidth && instance.data.inputType == "Input") {
+
+
+
+                x = instance.data.inputWidth;
+            }
+
+            x += xPosition;
 
             if (x + menuWidth >= instance.data.browserWidth) {
                 x = instance.data.browserWidth - menuWidth - paddingFromScreen;
@@ -341,12 +436,16 @@ function(instance, context) {
 
 
 
-            // x = 900, menu = 200, browser width 1000 
-            y = y + scrollY + 20;
+
+
+            if (instance.data.inputType == "Input") {
+               y = inputBoundingClientRect.top + inputHeight - inputPaddingBot - effectiveWidth;
+            }
+
+            y += (window.pageYOffset  + effectiveWidth);
 
             menu.style.left = x + "px";
             menu.style.top = y + "px";
-
             generateMenuItems();
         }
 
@@ -368,10 +467,7 @@ function(instance, context) {
         }
 
         // if the menu is visible but search line doesn'T contain '@' character, we are removing the menu
-
-
-
-        if (!range.startContainer.textContent.substring(start - 1, range.startOffset).includes('@') && menu !== null) {
+        if (!instance.data.inputElement.value.includes('@') && menu !== null) {
             removeGroupFocus(menu);
 
         }
@@ -380,13 +476,13 @@ function(instance, context) {
     function removeGroupFocus(menu) {
         if (wholeListUploaded) {
             menu.parentNode.removeChild(menu);
-            let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
+            let richEditor = document.querySelector(`#${el}`); // related rich text editor
             richEditor.removeEventListener("input", listenKeys);
             instance.data.letterCount = 0;
             richEditor.focus();
         } else {
             menu.remove();
-            let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
+            let richEditor = document.querySelector(`#${el}`); // related rich text editor
             richEditor.removeEventListener("input", listenKeys);
             instance.data.letterCount = 0;
             richEditor.focus();
@@ -399,6 +495,7 @@ function(instance, context) {
     }
 
     function openGroupFocus() {
+
         // creating "menu" element here
         var menu = document.createElement("div");
         menu.setAttribute('id', "userMentionMenu"); // add the ID 
@@ -444,7 +541,7 @@ function(instance, context) {
 
 
 
-        let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
+        let richEditor = document.querySelector(`#${el}`); // related rich text editor
 
 
 
@@ -455,32 +552,10 @@ function(instance, context) {
 
     function addMention(elementId) { // add the selected users name into the input
 
-        //var selectedElement = document.getElementById(elementId); // get the selected element
         var selectedElement = document.querySelector(`#${elementId} > div > span`);
 
 
         var theUsersName = selectedElement.innerHTML;
-
-        var richTextElement = document.querySelector(`#${el} > .ql-container > div.ql-editor`);
-
-        const textToFind = "@" + instance.data.userInput;
-
-        var tagName = "";
-
-        richTextElement.querySelectorAll('*').forEach(element => {
-            if (element.innerHTML.includes(textToFind)) {
-                tagName = element.tagName;
-            }
-        });
-
-        let randomNumber = Math.floor(Math.random() * 9) + 1;
-        let randomHex = 'rgb(255, 0, ' + randomNumber + ');';
-
-        if (boldMention && tagName !== "STRONG") {
-            var valueToBeReplaced = "<strong style='color:" + mentionColor + "'>" + theUsersName + "</strong> ";
-        } else {
-            var valueToBeReplaced = "<span style='color:" + mentionColor + "'>" + theUsersName + "</span> ";
-        }
 
         mentionedUsersName.push(theUsersName); // adding the mentioned user's name to mentioned users name list
         mentionedUsersId.push(userIds[userNames.indexOf(theUsersName)]); // adding the mentioned user's uid to mentioned users ID list
@@ -494,17 +569,13 @@ function(instance, context) {
 
 
 
-        richTextElement.innerHTML = richTextElement.innerHTML.replace("@" + instance.data.userInput, valueToBeReplaced);
-
+        instance.data.inputElement.value = instance.data.inputElement.value.replace("@" + instance.data.userInput, theUsersName + " ");
 
         instance.triggerEvent('mention_added');
 
 
-        richTextElement.focus();
+        instance.data.inputElement.focus();
 
-        setTimeout(function () {
-            richTextElement.blur();
-        }, 1);
     }
 
     var listStart = 0;
@@ -523,6 +594,9 @@ function(instance, context) {
         instance.data.background_color = properties.backgroundColor;
         instance.data.theme_color = properties.themeColor;
 
+        instance.data.inputElement = document.getElementById(`${el}`);
+        instance.data.inputType = properties.inputType;
+
         menuWidth = properties.menuWidth;
         paddingFromScreen = properties.paddingFromScreen;
 
@@ -530,15 +604,11 @@ function(instance, context) {
 
         el = properties.elementId;
 
-        afterChar = properties.afterChar - 1; // 
-
         scrollY = window.pageYOffset; // get current scroll position
 
-        focused = properties.focused; // is the richtext editor focused or not
 
-        mentionColor = properties.mentionColor;
-        boldMention = properties.boldMention;
 
+        afterChar = properties.afterChar - 1;
 
         var addUserImages = properties.userImages;
 
@@ -551,7 +621,6 @@ function(instance, context) {
 
                 uploadingList = false;
                 wholeListUploaded = true;
-
 
             } else {
 
@@ -578,32 +647,21 @@ function(instance, context) {
 
     // LISTENER DEFINATIONS
 
-    function getCaretIndex(contentEditableElement) {
-        let caretIndex = 0;
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const preCaretRange = range.cloneRange();
-            preCaretRange.selectNodeContents(contentEditableElement);
-            preCaretRange.setEnd(range.endContainer, range.endOffset);
-            caretIndex = preCaretRange.toString().length;
-        }
-        return caretIndex;
-    }
 
     document.addEventListener('input', function (event) {
 
-        const contentEditableElement = event.target;
-        const content = contentEditableElement.textContent;
+        
 
 
 
-        const caretIndex = getCaretIndex(contentEditableElement);
+        const caretIndex = instance.data.inputElement.selectionStart;
+
+        const content = instance.data.inputElement.value;
 
 
-        if (event.data === '@' && (caretIndex == 1 || content[caretIndex - 2] === ' ')) {
-            if (focused) {
-
+        if (event.data === '@' && (caretIndex == 1 || content[caretIndex - 2] === ' ' || content[caretIndex - 2] === '\n')) {
+            if (document.activeElement === document.getElementById(el)) {
+                instance.data.caretIndex = caretIndex - 1; // index of '@'
                 openGroupFocus();
             }
 
@@ -611,5 +669,6 @@ function(instance, context) {
     });
 
 
+ 
 
 }
