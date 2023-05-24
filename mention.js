@@ -154,7 +154,7 @@ function(instance, context) {
         //const filteredUsers = userNames.filter(item => item.toLowerCase().startsWith(instance.data.searchText));
         const filteredUsers = userNames.filter(item => item && item.toLowerCase().startsWith(instance.data.searchText));
 
-        console.log(filteredUsers);
+        
 
         for (var i = 0; i < filteredUsers.length; i++) {
 
@@ -170,6 +170,8 @@ function(instance, context) {
             userItem.style.fontWeight = instance.data.font_face.split(':::')[1];
             userItem.style.fontSize = instance.data.font_size + "px";
             userItem.style.color = instance.data.font_color;
+            userItem.style.cursor = "pointer";
+            
 
             if (!i) {
                 userItem.style.backgroundColor = instance.data.theme_color;
@@ -211,6 +213,7 @@ function(instance, context) {
                     profileImg.style.height = "30px";
                     profileImg.style.borderRadius = "50%";
                     profileImg.style.verticalAlign = "middle";
+                    profileImg.style.objectFit = "cover";
                     userRow.appendChild(profileImg);
                 }
             } catch { }
