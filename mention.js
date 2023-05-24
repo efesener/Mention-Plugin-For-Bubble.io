@@ -248,7 +248,7 @@ function(instance, context) {
 
 
     var listenKeys = (e) => { // after the menu opened we listen all key inputs
-
+        
         let selection = window.getSelection(); // learn selection's position
 
         instance.data.letterCount++;
@@ -264,7 +264,7 @@ function(instance, context) {
         const atIndex = searchString.indexOf("@"); // we only need the text after the '@', so learning '@'s position
 
         const searchText = searchString.substring(atIndex + 1).toLowerCase(); // the text after '@'
-
+        
         instance.data.userInput = searchString.substring(atIndex + 1);
 
         instance.data.searchText = searchText;
@@ -344,7 +344,6 @@ function(instance, context) {
 
 
 
-            // x = 900, menu = 200, browser width 1000 
             y = y + scrollY + 20;
 
             menu.style.left = x + "px";
@@ -603,8 +602,9 @@ function(instance, context) {
 
         const caretIndex = getCaretIndex(contentEditableElement);
 
+        // checking characters that before '@'
 
-        if (event.data === '@' && (caretIndex == 1 || content[caretIndex - 2] === ' ')) {
+        if (event.data === '@' && (caretIndex == 1 || content[caretIndex - 2] === ' ' || contentEditableElement.innerHTML.includes('<p>@</p>'))) {
             if (focused) {
 
                 openGroupFocus();
