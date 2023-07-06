@@ -17,10 +17,9 @@ function(instance, context) {
     var userNames = [];
     var userIds = [];
     var userImages = [];
-    var urlList = [];
 
-    var mentionedUsersName = []; // array for storing mentioned users name
-    var mentionedUsersId = []; // array for storing mentioned users ID
+    instance.data.mentionedUsersName = []; // array for storing mentioned users name
+    instance.data.mentionedUsersId = []; // array for storing mentioned users ID
 
     var menuWidth = 200;
     var paddingFromScreen = 20;
@@ -542,30 +541,24 @@ function(instance, context) {
 
 
         if (boldMention && tagName !== "STRONG") {
-            if(instance.data.urlListEnabled){
-                let urlAddress = urlList[userNames.indexOf(theUsersName)];
-                var valueToBeReplaced = "<a href='"+urlAddress+"' target='_self'><strong style='color:" + mentionColor + "'>@" + theUsersName + "</strong></a> ";
-            }else{
+           
                 var valueToBeReplaced = "<strong style='color:" + mentionColor + "'>@" + theUsersName + "</strong> ";
-            }
+           
         } else {
-            if(instance.data.urlListEnabled){
-                let urlAddress = urlList[userNames.indexOf(theUsersName)];
-                var valueToBeReplaced = "<a href='"+urlAddress+"' target='_self'><span style='color:" + mentionColor + "'>@" + theUsersName + "</span></a> ";
-            }else{
+            
                 var valueToBeReplaced = "<span style='color:" + mentionColor + "'>@" + theUsersName + "</span> ";
-            }
+            
         }
 
-        mentionedUsersName.push(theUsersName); // adding the mentioned user's name to mentioned users name list
-        mentionedUsersId.push(userIds[userNames.indexOf(theUsersName)]); // adding the mentioned user's uid to mentioned users ID list
+        instance.data.mentionedUsersName.push(theUsersName); // adding the mentioned user's name to mentioned users name list
+        instance.data.mentionedUsersId.push(userIds[userNames.indexOf(theUsersName)]); // adding the mentioned user's uid to mentioned users ID list
 
         instance.data.checkUsersName.push(theUsersName);
         instance.data.checkUsersId.push(userIds[userNames.indexOf(theUsersName)]);
 
 
-        instance.publishState('mentionedUsersId', mentionedUsersId);
-        instance.publishState('mentionedUsersName', mentionedUsersName);
+        instance.publishState('mentionedUsersId', instance.data.mentionedUsersId);
+        instance.publishState('mentionedUsersName', instance.data.mentionedUsersName);
 
 
 
@@ -618,9 +611,7 @@ function(instance, context) {
 
 
         var addUserImages = properties.userImages; // is the User Image List defined or not?
-        var addUrlList = properties.urlList; // is the URL List defined or not?
 
-        instance.data.urlListEnabled = addUrlList; // URL List is filled or not?
 
         while (uploadingList) {
 
@@ -645,12 +636,6 @@ function(instance, context) {
 
                 }
 
-                if (addUrlList) {
-
-                    var allUrls = properties.urlList.get(listStart, 1000);
-                    urlList = urlList.concat(allUrls);
-
-                }
 
                 listStart += 1000;
 

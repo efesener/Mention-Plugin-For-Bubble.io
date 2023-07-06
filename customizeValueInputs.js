@@ -1,8 +1,8 @@
 function(instance, properties, context) {
 
     // Get mentioned users' names and unique ids
-    const usersName = instance.data.checkUsersName;
-    const usersId = instance.data.checkUsersId;
+    const usersName = instance.data.mentionedUsersName;
+    const usersId = instance.data.mentionedUsersId;
 
     // Get input
     const inputElement = instance.data.inputElement;
@@ -39,16 +39,17 @@ function(instance, properties, context) {
         return hex;
     }
 
-    
-    const mentionColor = rgbaToHex(properties.mentionColor);
-
-
+    let mentionColor = properties.mentionColor;
+    if(!mentionColor.includes('#')){
+		mentionColor = rgbaToHex(properties.mentionColor);
+	}
+   
     // Defination of prefix and suffix of mention text
     let preMention = "";
     let postMention = "";
 
     // If else conditions related with customization
-    if (boldMention !== null) {
+    if (boldMention) {
         preMention += "[b]";
         postMention += "[/b]";
     }
@@ -95,4 +96,5 @@ function(instance, properties, context) {
 
     instance.publishState('customizedOutput', customizedOutput);
     instance.triggerEvent('customizedOutputReady');
+
 }

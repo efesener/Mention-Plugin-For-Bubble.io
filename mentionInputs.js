@@ -17,16 +17,14 @@ function(instance, context) {
     var userIds = [];
     var userImages = [];
 
-    var mentionedUsersName = []; // array for storing mentioned users name
-    var mentionedUsersId = []; // array for storing mentioned users ID
+    instance.data.mentionedUsersName = []; // array for storing mentioned users name
+    instance.data.mentionedUsersId = []; // array for storing mentioned users ID
 
     var menuWidth = 200;
     var paddingFromScreen = 20;
 
     let afterChar = 1;
 
-    instance.data.checkUsersName = [];
-    instance.data.checkUsersId = [];
 
     var emptyStateText = "User data not found!"
 
@@ -620,15 +618,11 @@ function(instance, context) {
 
         var theUsersName = selectedElement.innerHTML;
 
-        mentionedUsersName.push(theUsersName); // adding the mentioned user's name to mentioned users name list
-        mentionedUsersId.push(userIds[userNames.indexOf(theUsersName)]); // adding the mentioned user's uid to mentioned users ID list
+        instance.data.mentionedUsersName.push(theUsersName); // adding the mentioned user's name to mentioned users name list
+        instance.data.mentionedUsersId.push(userIds[userNames.indexOf(theUsersName)]); // adding the mentioned user's uid to mentioned users ID list
 
-        instance.data.checkUsersName.push(theUsersName);
-        instance.data.checkUsersId.push(userIds[userNames.indexOf(theUsersName)]);
-
-
-        instance.publishState('mentionedUsersId', mentionedUsersId);
-        instance.publishState('mentionedUsersName', mentionedUsersName);
+        instance.publishState('mentionedUsersId', instance.data.mentionedUsersId);
+        instance.publishState('mentionedUsersName', instance.data.mentionedUsersName);
 
 
 
@@ -667,6 +661,7 @@ function(instance, context) {
         emptyStateText = properties.emptyStateText;
 
         el = properties.elementId;
+        instance.data.elementId = el;
 
         scrollY = window.pageYOffset; // get current scroll position
 
