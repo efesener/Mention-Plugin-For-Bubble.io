@@ -24,8 +24,6 @@ function(instance, context) {
     var menuWidth = 200;
     var paddingFromScreen = 20;
 
-    instance.data.checkUsersName = [];
-    instance.data.checkUsersId = [];
 
     var emptyStateText = "User data not found!"
 
@@ -78,16 +76,59 @@ function(instance, context) {
         }
     }
 
+    let emptyStateCounter = 0;
+
+    const keyboardUpListener = (event) => {
+
+        const menuOptions = instance.data.menu.querySelectorAll('.mention-visible');
 
 
+        if (menuOptions.length == 0 && instance.data.searchText.length > 0 && event.key != 'Backspace') {
+            emptyStateCounter++;
 
+            if (emptyStateCounter == 2 + instance.data.afterChar) {
+                emptyStateCounter = 0;
+                removeGroupFocus(instance.data.menu);
+                // clear instance.data.searchText inside of remove Group Focus function
+            }
+        } else {
+            emptyStateCounter = 0;
+
+        }
+
+
+    }
 
     const keyboardInteractions = (event) => {
+
+
+
         const menuOptions = instance.data.menu.querySelectorAll('.mention-visible');
 
         if (menuOptions.length > 0) {
+            /*
+            const keyCombination = instance.data.keyCombination; // Kullanıcının girdiği tuş kombinasyonunu alın
+            const keys = keyCombination.split('+');
 
+            let isCombinationPressed = true;
+            keys.forEach(function (key) {
 
+                if (key === 'Shift' && !event.shiftKey){
+                    isCombinationPressed = false;
+                } 
+                else if (key === 'Ctrl' && !event.ctrlKey){
+                    isCombinationPressed = false;
+                } 
+                else if (key === 'Alt' && !event.altKey){
+                    isCombinationPressed = false;
+                } 
+                console.log(isCombinationPressed);
+            });
+
+            if (isCombinationPressed) {
+                console.log("OLDU YAVRU");
+            }
+            */
             menuOptions[currentIndex].style.backgroundColor = "";
 
 
@@ -144,10 +185,12 @@ function(instance, context) {
                 return;
             }
 
+            
+
         }
     };
 
-    function setXY(menu){
+    function setXY(menu) {
         // Rich text editörün seçili olan karakterleri gösteren range nesnesini alın
         var range2 = window.getSelection().getRangeAt(0);
 
@@ -165,7 +208,7 @@ function(instance, context) {
 
         }
 
-        
+
 
         y = y + scrollTop + 20;
 
@@ -196,11 +239,11 @@ function(instance, context) {
 
         let y = pageHeight + scrollTop;
 
-   
+
 
         if (menu.getBoundingClientRect().height + instance.data.menuStyleTop - scrollTop > pageHeight) {
 
-           
+
             y -= menu.getBoundingClientRect().height + instance.data.paddingFromScreen;
             menu.style.top = y + "px";
 
@@ -324,7 +367,28 @@ function(instance, context) {
     instance.data.letterCount = 0;
 
 
+
     var listenKeys = (e) => { // after the menu opened we listen all key inputs
+
+        function getCurrentParentTagName() {
+            const selection2 = window.getSelection();
+
+            if (selection2.rangeCount === 0) {
+                return null;  // Seçim yoksa null döndür
+            }
+
+            const range2 = selection2.getRangeAt(0);  // İlk seçim aralığını al
+            const node = range2.startContainer;  // Seçimin başladığı düğümü al
+
+            if (node.nodeType === 3) {  // Eğer bu bir metin düğümü ise
+                return node.parentNode.tagName;  // Metin düğümünün üst elementinin etiket adını döndür
+            } else {
+                return node.tagName;  // Aksi halde doğrudan düğümün etiket adını döndür
+            }
+        }
+
+        instance.data.tagName = getCurrentParentTagName();
+
 
         let selection = window.getSelection(); // learn selection's position
 
@@ -343,6 +407,7 @@ function(instance, context) {
         const searchText = searchString.substring(atIndex + 1).toLowerCase(); // the text after '@'
 
         instance.data.userInput = searchString.substring(atIndex + 1);
+
 
         instance.data.searchText = searchText;
 
@@ -398,14 +463,14 @@ function(instance, context) {
         const childElements = menu.querySelectorAll("*");
 
 
-        
+
 
         // if the menu is not opened yet and the search text has more than one character the menu will be visible
 
         if (document.getElementById("userMentionMenu") == null && instance.data.searchText.length > afterChar) {
 
             document.body.appendChild(menu);
-            
+
             setXY(menu);
 
             generateMenuItems();
@@ -441,6 +506,9 @@ function(instance, context) {
     }
 
     function removeGroupFocus(menu) {
+
+
+
         if (wholeListUploaded) {
             menu.parentNode.removeChild(menu);
             let richEditor = document.querySelector(`#${el} > .ql-container > div.ql-editor`); // related rich text editor
@@ -457,8 +525,12 @@ function(instance, context) {
 
 
         document.removeEventListener('keydown', keyboardInteractions);
+        document.removeEventListener('keyup', keyboardUpListener);
 
         currentIndex = 0;
+
+
+        instance.data.searchText = "";
     }
 
     function openGroupFocus() {
@@ -501,6 +573,7 @@ function(instance, context) {
         document.addEventListener('click', clickedElementIsMenu);
 
         document.addEventListener('keydown', keyboardInteractions);
+        document.addEventListener('keyup', keyboardUpListener);
 
 
         // adding user items into the menu
@@ -529,40 +602,55 @@ function(instance, context) {
 
         var richTextElement = document.querySelector(`#${el} > .ql-container > div.ql-editor`);
 
-        const textToFind = "@" + instance.data.userInput;
-
-        var tagName = "";
-
-        richTextElement.querySelectorAll('*').forEach(element => {
-            if (element.innerHTML.includes(textToFind)) {
-                tagName = element.tagName;
-            }
-        });
 
 
-        if (boldMention && tagName !== "STRONG") {
-           
-                var valueToBeReplaced = "<strong style='color:" + mentionColor + "'>@" + theUsersName + "</strong> ";
-           
+
+
+        if (boldMention && instance.data.tagName !== "STRONG") {
+
+            var valueToBeReplaced = "<strong style='color:" + mentionColor + "' class='mentioned'>@" + theUsersName + "</strong> ";
+
         } else {
-            
-                var valueToBeReplaced = "<span style='color:" + mentionColor + "'>@" + theUsersName + "</span> ";
-            
+
+            var valueToBeReplaced = "<span style='color:" + mentionColor + "' class='mentioned'>@" + theUsersName + "</span> ";
+
         }
 
-        instance.data.mentionedUsersName.push(theUsersName); // adding the mentioned user's name to mentioned users name list
+        // Kullanıcının ID'sini al
+        var theUserId = userIds[userNames.indexOf(theUsersName)];
+
+        instance.publishState('latestUserName', theUsersName);
+        instance.publishState('latestUserId', theUserId);
+
+        // Eğer bu kullanıcı daha önce mentionlanmamışsa listelere ekle
+        if (!instance.data.mentionedUsersId.includes(theUserId)) {
+            instance.data.mentionedUsersName.push(theUsersName);
+            instance.data.mentionedUsersId.push(theUserId);
+
+            instance.publishState('mentionedUsersId', instance.data.mentionedUsersId);
+            instance.publishState('mentionedUsersName', instance.data.mentionedUsersName);
+        }
+
+        /* instance.data.mentionedUsersName.push(theUsersName); // adding the mentioned user's name to mentioned users name list
         instance.data.mentionedUsersId.push(userIds[userNames.indexOf(theUsersName)]); // adding the mentioned user's uid to mentioned users ID list
 
-        instance.data.checkUsersName.push(theUsersName);
-        instance.data.checkUsersId.push(userIds[userNames.indexOf(theUsersName)]);
-
-
         instance.publishState('mentionedUsersId', instance.data.mentionedUsersId);
-        instance.publishState('mentionedUsersName', instance.data.mentionedUsersName);
+        instance.publishState('mentionedUsersName', instance.data.mentionedUsersName); */
+
+        let mentionStart = "@" + instance.data.userInput;
+
+        const regexPattern = "(?<!class=\"mentioned\">)" + mentionStart.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + "(?![a-zA-Z0-9\\s.,;:!?()\\[\\]{}\"])";
+        const regex = new RegExp(regexPattern, 'g');
+        richTextElement.innerHTML = richTextElement.innerHTML.replace(regex, valueToBeReplaced);
 
 
 
-        richTextElement.innerHTML = richTextElement.innerHTML.replace("@" + instance.data.userInput, valueToBeReplaced);
+
+
+
+
+
+        //richTextElement.innerHTML = richTextElement.innerHTML.replace("@" + instance.data.userInput, valueToBeReplaced);
 
 
         instance.triggerEvent('mention_added');
@@ -600,7 +688,64 @@ function(instance, context) {
         el = properties.elementId;
         instance.data.elementId = el;
 
+
+        instance.data.keyCombination = properties.keyCombination;
+
+        // INSTANT TEXT OPERATIONS @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+
+        const richTextElement = document.querySelector(`#${el} > .ql-container > div.ql-editor`);
+        instance.data.richTextElement = richTextElement;
+
+        if (richTextElement) {
+
+            let intervalId; // to break interval function
+            let lastValue = ""; // to store latest value of the input
+
+            const usersName = instance.data.mentionedUsersName;
+            const usersId = instance.data.mentionedUsersId;
+
+            if (focused) {
+                intervalId = setInterval(function () {
+                    //   instance.publishState('instantValue', richTextElement.textContent); // publish latest value of the input
+                    if (lastValue != richTextElement.textContent) { // if the input value has changed, then trigger an event
+                        //   instance.triggerEvent('instantValueHasChanged');
+                        lastValue = richTextElement.textContent;
+
+                        // UPDATE MENTION LIST @@@@@@@@@@@@@@@@@
+
+                        for (var i = usersName.length - 1; i >= 0; i--) {
+
+                            if (!richTextElement.innerHTML.includes('@' + usersName[i] + '</strong>') && !richTextElement.innerHTML.includes('@' + usersName[i] + '</span>')) {
+
+                                usersName.splice(i, 1);
+                                usersId.splice(i, 1);
+
+                            }
+
+                        }
+
+                        instance.data.mentionedUsersName = usersName;
+                        instance.data.mentionedUsersId = usersId;
+
+                        instance.publishState('mentionedUsersName', usersName);
+                        instance.publishState('mentionedUsersId', usersId);
+                    }
+
+                }, 500);
+            } else {
+                clearInterval(intervalId);
+            }
+
+        }
+
+
+
+
+
+
         afterChar = properties.afterChar - 1; // 
+        instance.data.afterChar = afterChar;
 
         scrollY = window.pageYOffset; // get current scroll position
 

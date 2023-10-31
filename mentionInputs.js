@@ -80,6 +80,28 @@ function(instance, context) {
     }
 
 
+    // REMOVE MENU IF THERE IS NO RESULT
+
+    let emptyStateCounter = 0;
+
+    const keyboardUpListener = (event) => {
+
+        const menuOptions = instance.data.menu.querySelectorAll('.mention-visible');
+
+            if(instance.data.menu && menuOptions.length == 0 && instance.data.searchText.length > 0 && event.key != 'Backspace'){
+                emptyStateCounter++;
+                if(emptyStateCounter == 2 + instance.data.afterChar){
+                    emptyStateCounter = 0;
+                    removeGroupFocus(instance.data.menu); 
+                    // clear instance.data.searchText inside of remove Group Focus function
+                }
+            }else{
+                emptyStateCounter = 0;
+                
+            }
+       
+
+    }
 
 
 
@@ -97,10 +119,16 @@ function(instance, context) {
                 currentIndex = (currentIndex + 1) % menuOptions.length;
                 menuOptions[currentIndex].focus();
                 menuOptions[currentIndex].style.backgroundColor = instance.data.theme_color;
+
+                event.preventDefault();
+                event.stopPropagation();
             } else if (event.key === 'ArrowUp') {
                 currentIndex = (currentIndex - 1 + menuOptions.length) % menuOptions.length;
                 menuOptions[currentIndex].focus();
                 menuOptions[currentIndex].style.backgroundColor = instance.data.theme_color;
+
+                event.preventDefault();
+                event.stopPropagation();
             } else if (event.key === 'Enter') {
 
                 addMention(menuOptions[currentIndex].id);
@@ -154,9 +182,22 @@ function(instance, context) {
     }
 
     function setXY(menu) {
-        const inputValue = instance.data.inputElement.value;
+        /* const inputValue = instance.data.inputElement.value;
         const searchStr = "@" + instance.data.userInput
-        const startIndex = inputValue.indexOf(searchStr);
+        const startIndex = inputValue.indexOf(searchStr); */
+
+        const inputValue = instance.data.inputElement.value;
+        const searchStr = "@" + instance.data.userInput;
+
+        // Eşleşmenin hemen ardından bir harf veya boşluk gelmemesi gerektiğini belirten regex
+        const regexPattern = searchStr.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + "(?![a-zA-Z0-9\\s\\W])";
+        const regex = new RegExp(regexPattern);
+
+        // Regex ile eşleşme arayışı
+        const match = inputValue.match(regex);
+        const startIndex = match ? match.index : -1; // Eşleşme varsa başlangıç indeksini, yoksa -1'i döndür
+
+
         const endIndex = startIndex + searchStr.length;
 
         const canvas = document.createElement("canvas");
@@ -243,18 +284,18 @@ function(instance, context) {
 
         if (endX >= instance.data.inputWidth && instance.data.inputType == "Input") {
 
-
-
             x = instance.data.inputWidth;
+        }else if(endX < instance.data.inputWidth && instance.data.inputType == "Input"){
+            x = endX;
         }
 
         x += xPosition;
+
 
         if (x + menuWidth >= instance.data.browserWidth) {
             x = instance.data.browserWidth - menuWidth - paddingFromScreen;
 
         }
-
 
 
 
@@ -487,13 +528,13 @@ function(instance, context) {
 
         }
 
-        
+
 
 
         const childElements = menu.querySelectorAll("*");
 
 
-        
+
 
         // if the menu is not opened yet and the search text has more than one character the menu will be visible
 
@@ -549,8 +590,11 @@ function(instance, context) {
 
 
         document.removeEventListener('keydown', keyboardInteractions);
+        document.removeEventListener('keyup', keyboardUpListener);
 
         currentIndex = 0;
+
+        instance.data.searchText = "";
     }
 
     function openGroupFocus() {
@@ -594,7 +638,7 @@ function(instance, context) {
         document.addEventListener('click', clickedElementIsMenu);
 
         document.addEventListener('keydown', keyboardInteractions);
-
+        document.addEventListener('keyup', keyboardUpListener);
 
         // adding user items into the menu
 
@@ -618,15 +662,34 @@ function(instance, context) {
 
         var theUsersName = selectedElement.innerHTML;
 
-        instance.data.mentionedUsersName.push(theUsersName); // adding the mentioned user's name to mentioned users name list
+        // Kullanıcının ID'sini al
+        var theUserId = userIds[userNames.indexOf(theUsersName)];
+
+        instance.publishState('latestUserName', theUsersName);
+        instance.publishState('latestUserId', theUserId);
+
+                // Eğer bu kullanıcı daha önce mentionlanmamışsa listelere ekle
+        if (!instance.data.mentionedUsersId.includes(theUserId)) {
+            instance.data.mentionedUsersName.push(theUsersName);
+            instance.data.mentionedUsersId.push(theUserId);
+
+            instance.publishState('mentionedUsersId', instance.data.mentionedUsersId);
+            instance.publishState('mentionedUsersName', instance.data.mentionedUsersName);
+        }
+
+        /* instance.data.mentionedUsersName.push(theUsersName); // adding the mentioned user's name to mentioned users name list
         instance.data.mentionedUsersId.push(userIds[userNames.indexOf(theUsersName)]); // adding the mentioned user's uid to mentioned users ID list
 
         instance.publishState('mentionedUsersId', instance.data.mentionedUsersId);
-        instance.publishState('mentionedUsersName', instance.data.mentionedUsersName);
+        instance.publishState('mentionedUsersName', instance.data.mentionedUsersName); */
 
+        let mentionStart =  "@"+ instance.data.userInput;
 
+        const regexPattern = mentionStart.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + "(?![a-zA-Z0-9.,;:!?()])";
 
-        instance.data.inputElement.value = instance.data.inputElement.value.replace("@" + instance.data.userInput, "@" + theUsersName + " ");
+        const regex = new RegExp(regexPattern, 'g');
+        instance.data.inputElement.value = instance.data.inputElement.value.replace(regex, "@" + theUsersName + " ");
+        // instance.data.inputElement.value = instance.data.inputElement.value.replace("@" + instance.data.userInput, "@" + theUsersName + " ");
 
         instance.triggerEvent('mention_added');
 
@@ -652,6 +715,57 @@ function(instance, context) {
         instance.data.theme_color = properties.themeColor;
 
         instance.data.inputElement = document.getElementById(`${el}`);
+
+
+
+        // INSTANT INPUT FUNCTION @@@@@@@@@@@@@@@@@@@@@@@@@
+
+        if (instance.data.inputElement) { // after getting input element
+            let intervalId; // to break interval function
+            let lastValue = ""; // to store latest value of the input
+
+
+            instance.data.inputElement.addEventListener('focus', function () { // listen whether the input is focused or not
+                intervalId = setInterval(function () {
+                    instance.publishState('instantValue', instance.data.inputElement.value); // publish latest value of the input
+                    if (lastValue != instance.data.inputElement.value) { // if the input value has changed, then trigger an event
+                        instance.triggerEvent('instantValueHasChanged');
+                        lastValue = instance.data.inputElement.value;
+                        // UPDATE MENTION LIST @@@@@@@@@@@@@@@@@
+
+                        const usersName = instance.data.mentionedUsersName; // get mentioned users name
+                        const usersId = instance.data.mentionedUsersId; // get mentioned user id
+
+                            for (var i = usersName.length - 1; i >= 0; i--) {
+
+                                if (!instance.data.inputElement.value.includes('@' + usersName[i])) { // if the current value doesnt contain the user
+
+                                    usersName.splice(i, 1);
+                                    usersId.splice(i, 1);
+
+                                }
+
+                            }
+
+                        instance.data.mentionedUsersName = usersName; // update instance
+                        instance.data.mentionedUsersId = usersId; // update instance
+ 
+                        instance.publishState('mentionedUsersName', usersName); // publish mentioned users name
+                        instance.publishState('mentionedUsersId', usersId); // publish mentioned users id
+                    }
+
+                }, 500);
+            });
+
+            // Input focusunu kaybettiğinde setInterval durdur
+            instance.data.inputElement.addEventListener('blur', function () {
+                clearInterval(intervalId);
+            });
+        }
+
+
+
+
         instance.data.inputType = properties.inputType;
 
         menuWidth = properties.menuWidth;
@@ -668,6 +782,7 @@ function(instance, context) {
 
 
         afterChar = properties.afterChar - 1;
+        instance.data.afterChar = afterChar;
 
         var addUserImages = properties.userImages;
 
@@ -710,9 +825,11 @@ function(instance, context) {
     document.addEventListener('input', function (event) {
 
 
+        if(!instance.data.inputElement){
+            instance.data.inputElement = document.getElementById(`${el}`);
 
-
-
+        }
+        
         const caretIndex = instance.data.inputElement.selectionStart;
 
         const content = instance.data.inputElement.value;
